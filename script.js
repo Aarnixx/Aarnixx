@@ -21,8 +21,8 @@ const cfg = {
     lineWidth: 1.0,
     pointRadius: 0.8,
     opacity: 0.25,
-    mouseInfluence: 120, // distance around cursor
-    mouseStrength: 18    // influence strength
+    mouseInfluence: 120,
+    mouseStrength: 35
   },
   cursorGlow: {
     enabled: true,
@@ -391,3 +391,4 @@ if (document.readyState === "complete" || document.readyState === "interactive")
 } else {
   document.addEventListener("DOMContentLoaded", initAll);
 }
+
