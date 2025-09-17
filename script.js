@@ -106,65 +106,77 @@ function Wavefield(canvas) {
     return r * cols + c;
   }
 
-  function drawGrid() {
-    ctx.clearRect(0, 0, width, height);
-    if (!points.length) return;
+function drawGrid() {
+  ctx.clearRect(0, 0, width, height);
+  if (!points.length) return;
 
-    const firstR = points[0].r;
-    const cols = points.filter(p => p.r === firstR).length;
-    const rows = Math.ceil(points.length / cols);
+  const firstR = points[0].r;
+  const cols = points.filter(p => p.r === firstR).length;
+  const rows = Math.ceil(points.length / cols);
 
-    ctx.lineWidth = cfg.wave.lineWidth;
-    ctx.globalCompositeOperation = "lighter";
+  ctx.lineWidth = cfg.wave.lineWidth;
+  ctx.globalCompositeOperation = "lighter";
 
-    for (let p of points) {
-      let offset = 0;
-      if (mouse.x !== null && mouse.y !== null) {
-        const dx = mouse.x - p.x;
-        const dy = mouse.y - p.y;
-        const dist = Math.sqrt(dx * dx + dy * dy);
-        if (dist < cfg.wave.mouseInfluence) {
-          offset = (cfg.wave.mouseInfluence - dist) / cfg.wave.mouseInfluence * cfg.wave.mouseStrength;
-        }
-      }
-      p.ay = p.y + Math.sin(time * p.speed + p.phase) * p.amp - offset;
-    }
+  for (let p of points) {
+    let offsetX = 0;
+    let offsetY = 0;
 
-    ctx.beginPath();
-    for (let r = 0; r < rows; r++) {
-      for (let c = 0; c < cols - 1; c++) {
-        const a = points[getIndex(r, c, cols)];
-        const b = points[getIndex(r, c + 1, cols)];
-        ctx.moveTo(a.x, a.ay);
-        ctx.lineTo(b.x, b.ay);
+    if (mouse.x !== null && mouse.y !== null) {
+      const dx = mouse.x - p.x;
+      const dy = mouse.y - p.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist < cfg.wave.mouseInfluence) {
+        const strength =
+          (cfg.wave.mouseInfluence - dist) /
+          cfg.wave.mouseInfluence *
+          cfg.wave.mouseStrength;
+
+        offsetX = (dx / dist) * strength;
+        offsetY = (dy / dist) * strength;
       }
     }
 
-    for (let c = 0; c < cols; c++) {
-      for (let r = 0; r < rows - 1; r++) {
-        const a = points[getIndex(r, c, cols)];
-        const b = points[getIndex(r + 1, c, cols)];
-        ctx.moveTo(a.x, a.ay);
-        ctx.lineTo(b.x, b.ay);
-      }
-    }
-
-    const grad = ctx.createLinearGradient(0, 0, width, height);
-    grad.addColorStop(0, "rgba(56,189,248,0.7)");
-    grad.addColorStop(0.5, "rgba(37,99,235,0.75)");
-    grad.addColorStop(1, "rgba(99,102,241,0.6)");
-    ctx.strokeStyle = grad;
-    ctx.stroke();
-
-    ctx.beginPath();
-    for (let p of points) {
-      ctx.moveTo(p.x + cfg.wave.pointRadius, p.ay);
-      ctx.arc(p.x, p.ay, cfg.wave.pointRadius, 0, Math.PI * 2);
-    }
-    ctx.fillStyle = "rgba(255,255,255,0.02)";
-    ctx.fill();
-    ctx.globalCompositeOperation = "source-over";
+    p.ax = p.x + offsetX;
+    p.ay = p.y + Math.sin(time * p.speed + p.phase) * p.amp - offsetY;
   }
+
+  ctx.beginPath();
+  // horizontal lines
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols - 1; c++) {
+      const a = points[getIndex(r, c, cols)];
+      const b = points[getIndex(r, c + 1, cols)];
+      ctx.moveTo(a.ax, a.ay);
+      ctx.lineTo(b.ax, b.ay);
+    }
+  }
+
+  for (let c = 0; c < cols; c++) {
+    for (let r = 0; r < rows - 1; r++) {
+      const a = points[getIndex(r, c, cols)];
+      const b = points[getIndex(r + 1, c, cols)];
+      ctx.moveTo(a.ax, a.ay);
+      ctx.lineTo(b.ax, b.ay);
+    }
+  }
+
+  const grad = ctx.createLinearGradient(0, 0, width, height);
+  grad.addColorStop(0, "rgba(56,189,248,0.7)");
+  grad.addColorStop(0.5, "rgba(37,99,235,0.75)");
+  grad.addColorStop(1, "rgba(99,102,241,0.6)");
+  ctx.strokeStyle = grad;
+  ctx.stroke();
+
+  ctx.beginPath();
+  for (let p of points) {
+    ctx.moveTo(p.ax + cfg.wave.pointRadius, p.ay);
+    ctx.arc(p.ax, p.ay, cfg.wave.pointRadius, 0, Math.PI * 2);
+  }
+  ctx.fillStyle = "rgba(255,255,255,0.02)";
+  ctx.fill();
+  ctx.globalCompositeOperation = "source-over";
+}
+
 
   let lastTs = null;
 
@@ -391,5 +403,6 @@ if (document.readyState === "complete" || document.readyState === "interactive")
 } else {
   document.addEventListener("DOMContentLoaded", initAll);
 }
+
 
 
