@@ -115,14 +115,12 @@ function Wavefield(canvas) {
     ctx.lineWidth = cfg.wave.lineWidth;
     ctx.globalCompositeOperation = "lighter";
 
-    // Adjust wave amplitude and speed based on mouse position
     const distToMouse = Math.hypot(mousePos.x - width / 2, mousePos.y - height / 2);
     const maxDist = Math.hypot(width / 2, height / 2);
     const normalizedDist = distToMouse / maxDist;
 
     for (let p of points) {
-      // Vary amplitude and speed based on distance to mouse
-      p.ay = p.y + Math.sin(time * p.speed + p.phase) * p.amp;
+      p.ay += p.y + Math.sin(time * p.speed + p.phase) * p.amp;
     }
 
     ctx.beginPath();
@@ -248,3 +246,4 @@ function setupScrollReveal() {
   const sections = $$("main.container section, .project-card, .spoken-card");
   if (!sections.length) return;
   sections.forEach
+
