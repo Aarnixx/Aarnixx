@@ -64,7 +64,6 @@ function Wavefield(canvas) {
   let points = [];
   let animationId;
   let time = 0;
-  let mousePos = { x: -1, y: -1 };
 
   function resize() {
     const ratio = window.devicePixelRatio || 1;
@@ -115,15 +114,8 @@ function Wavefield(canvas) {
     ctx.lineWidth = cfg.wave.lineWidth;
     ctx.globalCompositeOperation = "lighter";
 
-    const distToMouse = Math.hypot(mousePos.x - width / 2, mousePos.y - height / 2);
-    const maxDist = Math.hypot(width / 2, height / 2);
-    const normalizedDist = distToMouse / maxDist;
-
-    const waveAmplitude = cfg.wave.amplitude * (1 - normalizedDist);
-    const waveSpeed = cfg.wave.speed * (1 + normalizedDist);
-
     for (let p of points) {
-      p.ay = p.y + Math.sin(time * waveSpeed + p.phase) * waveAmplitude;
+      p.ay = p.y + Math.sin(time * p.speed + p.phase) * p.amp;
     }
 
     ctx.beginPath();
@@ -184,10 +176,6 @@ function Wavefield(canvas) {
   }
 
   window.addEventListener("resize", resize, { passive: true });
-  window.addEventListener("mousemove", (e) => {
-    mousePos = { x: e.clientX, y: e.clientY };
-  }, { passive: true });
-
   resize();
   start();
 
@@ -248,18 +236,18 @@ function setupRoleCycler() {
 function setupScrollReveal() {
   const sections = $$("main.container section, .project-card, .spoken-card");
   if (!sections.length) return;
-  sections.forEach((section) => {
-    section.style.opacity = "0";
-    section.style.transform = "translateY(18px)";
-    section.style.transition = "opacity 520ms cubic-bezier(.2,.9,.2,1), transform 520ms cubic-bezier(.2,.9,.2,1)";
-    section.style.willChange = "opacity, transform";
+  sections.forEach(el => {
+    el.style.opacity = "0";
+    el.style.transform = "translateY(18px)";
+    el.style.transition = "opacity 520ms cubic-bezier(.2,.9,.2,1), transform 520ms cubic-bezier(.2,.9,.2,1)";
+    el.style.willChange = "opacity, transform";
   });
 
   const obs = new IntersectionObserver(
     entries => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting) {
-          const el = entry.target;
+      entries.forEach(en => {
+        if (en.isIntersecting) {
+          const el = en.target;
           el.style.opacity = "1";
           el.style.transform = "translateY(0)";
           obs.unobserve(el);
@@ -269,7 +257,7 @@ function setupScrollReveal() {
     { root: null, rootMargin: cfg.revealRootMargin, threshold: cfg.revealThreshold }
   );
 
-  sections.forEach(section => obs.observe(section));
+  sections.forEach(s => obs.observe(s));
 }
 
 function setupCardTilt() {
@@ -313,56 +301,77 @@ function setupCardTilt() {
 
 function setupCursorGlow() {
   if (!cfg.cursorGlow.enabled) return;
-  const cursor = document.createElement("div");
-  cursor.id = "cursor-glow";
-  Object.assign(cursor.style, {
+  const glow = document.createElement("div");
+  glow.id = "cursor-glow";
+  Object.assign(glow.style, {
     position: "fixed",
     pointerEvents: "none",
-    top: "0",
-    left: "0",
     width: `${cfg.cursorGlow.size}px`,
     height: `${cfg.cursorGlow.size}px`,
     marginLeft: `-${cfg.cursorGlow.size / 2}px`,
     marginTop: `-${cfg.cursorGlow.size / 2}px`,
     borderRadius: "50%",
-    background: `radial-gradient(circle, rgba(37,99,235,${cfg.cursorGlow.intensity}) 0%, transparent 70%)`,
-    opacity: "0",
+    background: "radial-gradient(circle, rgba(56,189,248,0.22) 0%, rgba(56,189,248,0.06) 35%, rgba(56,189,248,0) 60%)",
+    mixBlendMode: "screen",
+    transform: "translate3d(-9999px,-9999px,0)",
     transition: `opacity ${cfg.cursorGlow.fadeTime}ms ease`,
-    zIndex: 10000,
-    mixBlendMode: "screen"
+    opacity: "0.95",
+    zIndex: "9999"
   });
-  document.body.appendChild(cursor);
+  document.body.appendChild(glow);
 
   let visible = false;
-  function onMove(e) {
-    cursor.style.transform = `translate(${e.clientX}px, ${e.clientY}px)`;
+  let lastMoveTs = 0;
+  let rafId = null;
+
+  function move(x, y) {
+    glow.style.transform = `translate3d(${x}px, ${y}px, 0)`;
+    lastMoveTs = performance.now();
     if (!visible) {
       visible = true;
-      cursor.style.opacity = "1";
+      glow.style.opacity = "0.95";
     }
   }
 
-  function onLeave() {
-    visible = false;
-    cursor.style.opacity = "0";
+  function hideWithDelay() {
+    if (rafId) cancelAnimationFrame(rafId);
+    rafId = requestAnimationFrame(function check() {
+      if (performance.now() - lastMoveTs > cfg.cursorGlow.fadeTime) {
+        visible = false;
+        glow.style.opacity = "0";
+      } else {
+        rafId = requestAnimationFrame(check);
+      }
+    });
   }
 
-  window.addEventListener("mousemove", onMove, { passive: true });
-  window.addEventListener("mouseout", onLeave, { passive: true });
+  window.addEventListener("pointermove", e => {
+    move(e.clientX, e.clientY);
+    hideWithDelay();
+  }, { passive: true });
+
+  window.addEventListener("mouseout", () => { glow.style.opacity = "0"; });
 }
 
-function onReady() {
+function initAll() {
   const canvas = setupFullPageCanvas();
-  Wavefield(canvas);
+  const wave = Wavefield(canvas);
   setupRoleCycler();
   setupScrollReveal();
   setupCardTilt();
   setupCursorGlow();
+
+  if (canvas) {
+    const ro = new ResizeObserver(() => {
+      if (wave && wave.resize) wave.resize();
+    });
+    ro.observe(document.body);
+  }
 }
 
-// Support for DOM ready states:
-if (document.readyState === "loading") {
-  document.addEventListener("DOMContentLoaded", onReady);
+if (document.readyState === "complete" || document.readyState === "interactive") {
+  setTimeout(initAll, 50);
 } else {
-  onReady();
+  document.addEventListener("DOMContentLoaded", initAll);
 }
+
