@@ -12,17 +12,18 @@ const cfg = {
   revealRootMargin: "0px 0px -12% 0px",
   revealThreshold: 0.12,
   wave: {
-    rows: 12,
-    cols: 40,
+    rows: 20,
+    cols: 30,
     spacingX: null,
     spacingY: null,
-    amplitude: 14,
+    amplitude: 5.0,
     speed: 5.0,
-    lineWidth: 1.0,
-    pointRadius: 0.8,
+    lineWidth: 2.0,
+    pointRadius: 0.4,
     opacity: 0.25,
-    mouseInfluence: 120,
-    mouseStrength: 80
+    mouseInfluence: 400,
+    mouseStrength: 400,
+    holeRadius: 20
   },
   cursorGlow: {
     enabled: true,
@@ -31,7 +32,7 @@ const cfg = {
     fadeTime: 600
   },
   tilt: {
-    maxRotate: 8,
+    maxRotate: 20,
     scale: 1.03
   }
 };
@@ -96,7 +97,10 @@ function Wavefield(canvas) {
           c,
           phase: Math.random() * Math.PI * 2,
           speed: cfg.wave.speed * (0.6 + Math.random() * 0.8),
-          amp: cfg.wave.amplitude * (0.6 + Math.random() * 0.9)
+          amp: cfg.wave.amplitude * (0.6 + Math.random() * 0.9),
+          axPrev: x,
+          ayPrev: y,
+          hidden: false
         });
       }
     }
@@ -106,77 +110,121 @@ function Wavefield(canvas) {
     return r * cols + c;
   }
 
-function drawGrid() {
-  ctx.clearRect(0, 0, width, height);
-  if (!points.length) return;
+  function segmentCrossesHole(ax, ay, bx, by, hx, hy, hr) {
+    const vx = bx - ax;
+    const vy = by - ay;
+    const wx = hx - ax;
+    const wy = hy - ay;
+    const len2 = vx * vx + vy * vy;
+    if (len2 === 0) return false;
+    let t = (wx * vx + wy * vy) / len2;
+    if (t < 0) t = 0;
+    if (t > 1) t = 1;
+    const cx = ax + vx * t;
+    const cy = ay + vy * t;
+    const dx = cx - hx;
+    const dy = cy - hy;
+    return dx * dx + dy * dy <= hr * hr;
+  }
 
-  const firstR = points[0].r;
-  const cols = points.filter(p => p.r === firstR).length;
-  const rows = Math.ceil(points.length / cols);
+  function drawGrid() {
+    ctx.clearRect(0, 0, width, height);
+    if (!points.length) return;
 
-  ctx.lineWidth = cfg.wave.lineWidth;
-  ctx.globalCompositeOperation = "lighter";
+    const firstR = points[0].r;
+    const cols = points.filter(p => p.r === firstR).length;
+    const rows = Math.ceil(points.length / cols);
 
-  for (let p of points) {
-    let offsetX = 0;
-    let offsetY = 0;
+    ctx.lineWidth = cfg.wave.lineWidth;
+    ctx.lineJoin = "round";
+    ctx.lineCap = "round";
+    ctx.globalCompositeOperation = "lighter";
 
-    if (mouse.x !== null && mouse.y !== null) {
-      const dx = mouse.x - p.x;
-      const dy = mouse.y - p.y;
-      const dist = Math.sqrt(dx * dx + dy * dy);
-      if (dist < cfg.wave.mouseInfluence) {
-        const strength =
-          (cfg.wave.mouseInfluence - dist) /
-          cfg.wave.mouseInfluence *
-          cfg.wave.mouseStrength;
+    const R = cfg.wave.mouseInfluence;
+    const holeR = cfg.wave.holeRadius;
 
-        offsetX = (dx / dist) * strength;
-        offsetY = (dy / dist) * strength;
+    for (let p of points) {
+      const siny = Math.sin(time * p.speed + p.phase) * p.amp;
+      const sinx = Math.cos(time * p.speed + p.phase) * p.amp;
+      if (mouse.x === null || mouse.y === null) {
+        p.hidden = false;
+        p.targetAx = p.x + sinx;
+        p.targetAy = p.y + siny;
+      } else {
+        const dx = p.x - mouse.x;
+        const dy = p.y - mouse.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist <= holeR) {
+          p.hidden = true;
+          const safeDist = Math.max(dist, 0.0001);
+          p.targetAx = mouse.x + (dx / safeDist) * holeR + sinx;
+          p.targetAy = mouse.y + (dy / safeDist) * holeR + siny;
+        } else if (dist < R) {
+          p.hidden = false;
+          const nd = (dist - holeR) / Math.max(R - holeR, 0.0001);
+          const fall = Math.pow(1 - nd, 2);
+          const strength = fall * cfg.wave.mouseStrength;
+          const safeDist = Math.max(dist, 0.0001);
+          const ux = dx / safeDist;
+          const uy = dy / safeDist;
+          const tx = -uy;
+          const ty = ux;
+          const radialPush = strength * 0.02;
+          const tangential = strength * 0.12 * (1 + 0.5 * fall);
+          const nx = mouse.x + ux * (dist + radialPush) + tx * tangential + sinx;
+          const ny = mouse.y + uy * (dist + radialPush) + ty * tangential + siny;
+          p.targetAx = nx;
+          p.targetAy = ny;
+        } else {
+          p.hidden = false;
+          p.targetAx = p.x + sinx;
+          p.targetAy = p.y + siny;
+        }
+      }
+
+      p.axPrev += (p.targetAx - p.axPrev) * 0.18;
+      p.ayPrev += (p.targetAy - p.ayPrev) * 0.18;
+      p.ax = p.axPrev;
+      p.ay = p.ayPrev;
+    }
+
+    ctx.beginPath();
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols - 1; c++) {
+        const a = points[getIndex(r, c, cols)];
+        const b = points[getIndex(r, c + 1, cols)];
+        if (a.hidden || b.hidden) continue;
+        if (mouse.x !== null && mouse.y !== null && segmentCrossesHole(a.ax, a.ay, b.ax, b.ay, mouse.x, mouse.y, holeR)) continue;
+        ctx.moveTo(a.ax, a.ay);
+        ctx.lineTo(b.ax, b.ay);
       }
     }
 
-    p.ax = p.x + offsetX;
-    p.ay = p.y + Math.sin(time * p.speed + p.phase) * p.amp - offsetY;
-  }
-
-  ctx.beginPath();
-  // horizontal lines
-  for (let r = 0; r < rows; r++) {
-    for (let c = 0; c < cols - 1; c++) {
-      const a = points[getIndex(r, c, cols)];
-      const b = points[getIndex(r, c + 1, cols)];
-      ctx.moveTo(a.ax, a.ay);
-      ctx.lineTo(b.ax, b.ay);
+    for (let c = 0; c < cols; c++) {
+      for (let r = 0; r < rows - 1; r++) {
+        const a = points[getIndex(r, c, cols)];
+        const b = points[getIndex(r + 1, c, cols)];
+        if (a.hidden || b.hidden) continue;
+        if (mouse.x !== null && mouse.y !== null && segmentCrossesHole(a.ax, a.ay, b.ax, b.ay, mouse.x, mouse.y, holeR)) continue;
+        ctx.moveTo(a.ax, a.ay);
+        ctx.lineTo(b.ax, b.ay);
+      }
     }
-  }
 
-  for (let c = 0; c < cols; c++) {
-    for (let r = 0; r < rows - 1; r++) {
-      const a = points[getIndex(r, c, cols)];
-      const b = points[getIndex(r + 1, c, cols)];
-      ctx.moveTo(a.ax, a.ay);
-      ctx.lineTo(b.ax, b.ay);
+    ctx.strokeStyle = "rgba(104, 96, 212, 0.8)";
+    ctx.stroke();
+
+    ctx.beginPath();
+    for (let p of points) {
+      if (p.hidden) continue;
+      ctx.moveTo(p.ax + cfg.wave.pointRadius, p.ay);
+      ctx.arc(p.ax, p.ay, cfg.wave.pointRadius, 0, Math.PI * 2);
     }
+    ctx.fillStyle = "rgba(255,255,255,0.05)";
+    ctx.fill();
+
+    ctx.globalCompositeOperation = "source-over";
   }
-
-  const grad = ctx.createLinearGradient(0, 0, width, height);
-  grad.addColorStop(0, "rgba(56,189,248,0.7)");
-  grad.addColorStop(0.5, "rgba(37,99,235,0.75)");
-  grad.addColorStop(1, "rgba(99,102,241,0.6)");
-  ctx.strokeStyle = grad;
-  ctx.stroke();
-
-  ctx.beginPath();
-  for (let p of points) {
-    ctx.moveTo(p.ax + cfg.wave.pointRadius, p.ay);
-    ctx.arc(p.ax, p.ay, cfg.wave.pointRadius, 0, Math.PI * 2);
-  }
-  ctx.fillStyle = "rgba(255,255,255,0.02)";
-  ctx.fill();
-  ctx.globalCompositeOperation = "source-over";
-}
-
 
   let lastTs = null;
 
@@ -184,9 +232,7 @@ function drawGrid() {
     if (!lastTs) lastTs = ts;
     const delta = (ts - lastTs) / 1000;
     lastTs = ts;
-
     time += delta;
-
     drawGrid();
     requestAnimationFrame(step);
   }
@@ -403,6 +449,3 @@ if (document.readyState === "complete" || document.readyState === "interactive")
 } else {
   document.addEventListener("DOMContentLoaded", initAll);
 }
-
-
-
