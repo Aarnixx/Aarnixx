@@ -119,8 +119,11 @@ function Wavefield(canvas) {
     const maxDist = Math.hypot(width / 2, height / 2);
     const normalizedDist = distToMouse / maxDist;
 
+    const waveAmplitude = cfg.wave.amplitude * (1 - normalizedDist);
+    const waveSpeed = cfg.wave.speed * (1 + normalizedDist);
+
     for (let p of points) {
-      p.ay += p.y + Math.sin(time * p.speed + p.phase) * p.amp;
+      p.ay = p.y + Math.sin(time * waveSpeed + p.phase) * waveAmplitude;
     }
 
     ctx.beginPath();
@@ -245,5 +248,25 @@ function setupRoleCycler() {
 function setupScrollReveal() {
   const sections = $$("main.container section, .project-card, .spoken-card");
   if (!sections.length) return;
-  sections.forEach
+  sections.forEach((section) => {
+    const options = {
+      rootMargin: cfg.revealRootMargin,
+      threshold: cfg.revealThreshold
+    };
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add("in-view");
+        }
+      });
+    }, options);
+    observer.observe(section);
+  });
+}
 
+document.addEventListener("DOMContentLoaded", () => {
+  const canvas = setupFullPageCanvas();
+  const wavefield = new Wavefield(canvas);
+  setupRoleCycler();
+  setupScrollReveal();
+});
