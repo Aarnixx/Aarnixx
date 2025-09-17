@@ -64,6 +64,7 @@ function Wavefield(canvas) {
   let points = [];
   let animationId;
   let time = 0;
+  let mousePos = { x: -1, y: -1 };
 
   function resize() {
     const ratio = window.devicePixelRatio || 1;
@@ -114,7 +115,13 @@ function Wavefield(canvas) {
     ctx.lineWidth = cfg.wave.lineWidth;
     ctx.globalCompositeOperation = "lighter";
 
+    // Adjust wave amplitude and speed based on mouse position
+    const distToMouse = Math.hypot(mousePos.x - width / 2, mousePos.y - height / 2);
+    const maxDist = Math.hypot(width / 2, height / 2);
+    const normalizedDist = distToMouse / maxDist;
+
     for (let p of points) {
+      // Vary amplitude and speed based on distance to mouse
       p.ay = p.y + Math.sin(time * p.speed + p.phase) * p.amp;
     }
 
@@ -176,6 +183,10 @@ function Wavefield(canvas) {
   }
 
   window.addEventListener("resize", resize, { passive: true });
+  window.addEventListener("mousemove", (e) => {
+    mousePos = { x: e.clientX, y: e.clientY };
+  }, { passive: true });
+
   resize();
   start();
 
@@ -236,141 +247,4 @@ function setupRoleCycler() {
 function setupScrollReveal() {
   const sections = $$("main.container section, .project-card, .spoken-card");
   if (!sections.length) return;
-  sections.forEach(el => {
-    el.style.opacity = "0";
-    el.style.transform = "translateY(18px)";
-    el.style.transition = "opacity 520ms cubic-bezier(.2,.9,.2,1), transform 520ms cubic-bezier(.2,.9,.2,1)";
-    el.style.willChange = "opacity, transform";
-  });
-
-  const obs = new IntersectionObserver(
-    entries => {
-      entries.forEach(en => {
-        if (en.isIntersecting) {
-          const el = en.target;
-          el.style.opacity = "1";
-          el.style.transform = "translateY(0)";
-          obs.unobserve(el);
-        }
-      });
-    },
-    { root: null, rootMargin: cfg.revealRootMargin, threshold: cfg.revealThreshold }
-  );
-
-  sections.forEach(s => obs.observe(s));
-}
-
-function setupCardTilt() {
-  const cards = $$(".project-card, .spoken-card");
-  if (!cards.length) return;
-  let raf = null;
-
-  function onMove(e, card) {
-    if (raf) cancelAnimationFrame(raf);
-    raf = requestAnimationFrame(() => {
-      const rect = card.getBoundingClientRect();
-      const px = (e.clientX - rect.left) / rect.width;
-      const py = (e.clientY - rect.top) / rect.height;
-      const rotateY = (px - 0.5) * cfg.tilt.maxRotate * -1;
-      const rotateX = (py - 0.5) * cfg.tilt.maxRotate;
-      card.style.transform = `perspective(900px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale(${cfg.tilt.scale})`;
-      card.style.transition = "transform 120ms linear";
-      card.style.willChange = "transform";
-      card.style.boxShadow = "0 18px 40px rgba(7, 10, 25, 0.12)";
-    });
-  }
-
-  function onLeave(card) {
-    if (raf) cancelAnimationFrame(raf);
-    card.style.transition = "transform 400ms cubic-bezier(.2,.9,.2,1), box-shadow 300ms ease";
-    card.style.transform = "none";
-    card.style.boxShadow = "";
-  }
-
-  cards.forEach(card => {
-    card.addEventListener("mousemove", e => onMove(e, card));
-    card.addEventListener("mouseleave", () => onLeave(card));
-    card.addEventListener("focusin", () => {
-      card.style.transform = `scale(${cfg.tilt.scale})`;
-    });
-    card.addEventListener("focusout", () => {
-      card.style.transform = "none";
-    });
-  });
-}
-
-function setupCursorGlow() {
-  if (!cfg.cursorGlow.enabled) return;
-  const glow = document.createElement("div");
-  glow.id = "cursor-glow";
-  Object.assign(glow.style, {
-    position: "fixed",
-    pointerEvents: "none",
-    width: `${cfg.cursorGlow.size}px`,
-    height: `${cfg.cursorGlow.size}px`,
-    marginLeft: `-${cfg.cursorGlow.size / 2}px`,
-    marginTop: `-${cfg.cursorGlow.size / 2}px`,
-    borderRadius: "50%",
-    background: "radial-gradient(circle, rgba(56,189,248,0.22) 0%, rgba(56,189,248,0.06) 35%, rgba(56,189,248,0) 60%)",
-    mixBlendMode: "screen",
-    transform: "translate3d(-9999px,-9999px,0)",
-    transition: `opacity ${cfg.cursorGlow.fadeTime}ms ease`,
-    opacity: "0.95",
-    zIndex: "9999"
-  });
-  document.body.appendChild(glow);
-
-  let visible = false;
-  let lastMoveTs = 0;
-  let rafId = null;
-
-  function move(x, y) {
-    glow.style.transform = `translate3d(${x}px, ${y}px, 0)`;
-    lastMoveTs = performance.now();
-    if (!visible) {
-      visible = true;
-      glow.style.opacity = "0.95";
-    }
-  }
-
-  function hideWithDelay() {
-    if (rafId) cancelAnimationFrame(rafId);
-    rafId = requestAnimationFrame(function check() {
-      if (performance.now() - lastMoveTs > cfg.cursorGlow.fadeTime) {
-        visible = false;
-        glow.style.opacity = "0";
-      } else {
-        rafId = requestAnimationFrame(check);
-      }
-    });
-  }
-
-  window.addEventListener("pointermove", e => {
-    move(e.clientX, e.clientY);
-    hideWithDelay();
-  }, { passive: true });
-
-  window.addEventListener("mouseout", () => { glow.style.opacity = "0"; });
-}
-
-function initAll() {
-  const canvas = setupFullPageCanvas();
-  const wave = Wavefield(canvas);
-  setupRoleCycler();
-  setupScrollReveal();
-  setupCardTilt();
-  setupCursorGlow();
-
-  if (canvas) {
-    const ro = new ResizeObserver(() => {
-      if (wave && wave.resize) wave.resize();
-    });
-    ro.observe(document.body);
-  }
-}
-
-if (document.readyState === "complete" || document.readyState === "interactive") {
-  setTimeout(initAll, 50);
-} else {
-  document.addEventListener("DOMContentLoaded", initAll);
-}
+  sections.forEach
