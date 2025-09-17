@@ -249,24 +249,120 @@ function setupScrollReveal() {
   const sections = $$("main.container section, .project-card, .spoken-card");
   if (!sections.length) return;
   sections.forEach((section) => {
-    const options = {
-      rootMargin: cfg.revealRootMargin,
-      threshold: cfg.revealThreshold
-    };
-    const observer = new IntersectionObserver((entries) => {
-      entries.forEach((entry) => {
+    section.style.opacity = "0";
+    section.style.transform = "translateY(18px)";
+    section.style.transition = "opacity 520ms cubic-bezier(.2,.9,.2,1), transform 520ms cubic-bezier(.2,.9,.2,1)";
+    section.style.willChange = "opacity, transform";
+  });
+
+  const obs = new IntersectionObserver(
+    entries => {
+      entries.forEach(entry => {
         if (entry.isIntersecting) {
-          entry.target.classList.add("in-view");
+          const el = entry.target;
+          el.style.opacity = "1";
+          el.style.transform = "translateY(0)";
+          obs.unobserve(el);
         }
       });
-    }, options);
-    observer.observe(section);
+    },
+    { root: null, rootMargin: cfg.revealRootMargin, threshold: cfg.revealThreshold }
+  );
+
+  sections.forEach(section => obs.observe(section));
+}
+
+function setupCardTilt() {
+  const cards = $$(".project-card, .spoken-card");
+  if (!cards.length) return;
+  let raf = null;
+
+  function onMove(e, card) {
+    if (raf) cancelAnimationFrame(raf);
+    raf = requestAnimationFrame(() => {
+      const rect = card.getBoundingClientRect();
+      const px = (e.clientX - rect.left) / rect.width;
+      const py = (e.clientY - rect.top) / rect.height;
+      const rotateY = (px - 0.5) * cfg.tilt.maxRotate * -1;
+      const rotateX = (py - 0.5) * cfg.tilt.maxRotate;
+      card.style.transform = `perspective(900px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale(${cfg.tilt.scale})`;
+      card.style.transition = "transform 120ms linear";
+      card.style.willChange = "transform";
+      card.style.boxShadow = "0 18px 40px rgba(7, 10, 25, 0.12)";
+    });
+  }
+
+  function onLeave(card) {
+    if (raf) cancelAnimationFrame(raf);
+    card.style.transition = "transform 400ms cubic-bezier(.2,.9,.2,1), box-shadow 300ms ease";
+    card.style.transform = "none";
+    card.style.boxShadow = "";
+  }
+
+  cards.forEach(card => {
+    card.addEventListener("mousemove", e => onMove(e, card));
+    card.addEventListener("mouseleave", () => onLeave(card));
+    card.addEventListener("focusin", () => {
+      card.style.transform = `scale(${cfg.tilt.scale})`;
+    });
+    card.addEventListener("focusout", () => {
+      card.style.transform = "none";
+    });
   });
 }
 
-document.addEventListener("DOMContentLoaded", () => {
+function setupCursorGlow() {
+  if (!cfg.cursorGlow.enabled) return;
+  const cursor = document.createElement("div");
+  cursor.id = "cursor-glow";
+  Object.assign(cursor.style, {
+    position: "fixed",
+    pointerEvents: "none",
+    top: "0",
+    left: "0",
+    width: `${cfg.cursorGlow.size}px`,
+    height: `${cfg.cursorGlow.size}px`,
+    marginLeft: `-${cfg.cursorGlow.size / 2}px`,
+    marginTop: `-${cfg.cursorGlow.size / 2}px`,
+    borderRadius: "50%",
+    background: `radial-gradient(circle, rgba(37,99,235,${cfg.cursorGlow.intensity}) 0%, transparent 70%)`,
+    opacity: "0",
+    transition: `opacity ${cfg.cursorGlow.fadeTime}ms ease`,
+    zIndex: 10000,
+    mixBlendMode: "screen"
+  });
+  document.body.appendChild(cursor);
+
+  let visible = false;
+  function onMove(e) {
+    cursor.style.transform = `translate(${e.clientX}px, ${e.clientY}px)`;
+    if (!visible) {
+      visible = true;
+      cursor.style.opacity = "1";
+    }
+  }
+
+  function onLeave() {
+    visible = false;
+    cursor.style.opacity = "0";
+  }
+
+  window.addEventListener("mousemove", onMove, { passive: true });
+  window.addEventListener("mouseout", onLeave, { passive: true });
+}
+
+function onReady() {
   const canvas = setupFullPageCanvas();
-  const wavefield = new Wavefield(canvas);
+  Wavefield(canvas);
   setupRoleCycler();
   setupScrollReveal();
-});
+  setupCardTilt();
+  setupCursorGlow();
+}
+
+// Support for DOM ready states:
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", onReady);
+} else {
+  onReady();
+}
