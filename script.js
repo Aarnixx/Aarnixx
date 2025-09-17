@@ -22,7 +22,7 @@ const cfg = {
     pointRadius: 0.8,
     opacity: 0.25,
     mouseInfluence: 120,
-    mouseStrength: 35
+    mouseStrength: 80
   },
   cursorGlow: {
     enabled: true,
@@ -391,4 +391,5 @@ if (document.readyState === "complete" || document.readyState === "interactive")
 } else {
   document.addEventListener("DOMContentLoaded", initAll);
 }
+
 
