@@ -21,8 +21,22 @@ html, body {
   background: var(--bg-dark);
   color: var(--text-main);
   overflow-x: hidden;
-  overflow-y: scroll; /* always show scrollbar */
+  overflow-y: auto;
 }
+
+html::-webkit-scrollbar,
+body::-webkit-scrollbar {
+  display: none;
+}
+
+html, body {
+  scrollbar-width: none;
+}
+
+html, body {
+  -ms-overflow-style: none;
+}
+
 
 a {
   text-decoration: none;
@@ -116,7 +130,7 @@ header::before {
   height: 100%;
   z-index: 0;
   display: block;
-  pointer-events: none; /* allows scrolling through */
+  pointer-events: none;
 }
 
 main section {
@@ -251,6 +265,35 @@ h2 {
 
 .project-card a:hover {
   text-shadow: 0 0 6px var(--accent);
+}
+
+.cv-container {
+  text-align: center;
+  margin: 3rem 0;
+}
+
+.cv-download {
+  display: inline-block;
+  padding: 1rem 2rem;
+  background: var(--bg-card);
+  color: var(--text-main);
+  font-size: 1.1rem;
+  font-weight: 600;
+  border-radius: var(--radius);
+  border: 1px solid var(--accent);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+  transition: background var(--transition), transform var(--transition), box-shadow var(--transition);
+}
+
+.cv-download i {
+  margin-right: 0.6rem;
+  color: var(--accent);
+}
+
+.cv-download:hover {
+  background: rgba(88, 166, 255, 0.1);
+  transform: translateY(-4px);
+  box-shadow: 0 8px 20px rgba(88,166,255,0.4);
 }
 
 .contact-links {
