@@ -1,3 +1,13 @@
+:root {
+  --bg-dark: #0d1117;
+  --bg-card: #161b22;
+  --accent: #58a6ff;
+  --text-main: #e6edf3;
+  --text-muted: #8b949e;
+  --radius: 1rem;
+  --transition: 0.3s ease;
+}
+
 * {
   margin: 0;
   padding: 0;
@@ -6,20 +16,23 @@
 
 html, body {
   height: 100%;
+  min-height: 100vh;
   font-family: "Inter", "Segoe UI", Roboto, sans-serif;
-  background: #0d1117;
-  color: #e6edf3;
+  background: var(--bg-dark);
+  color: var(--text-main);
   overflow-x: hidden;
+  overflow-y: scroll; /* always show scrollbar */
 }
 
 a {
   text-decoration: none;
   color: inherit;
-  transition: color 0.3s ease;
+  transition: color var(--transition);
 }
 
-a:hover {
-  color: #58a6ff;
+a:hover,
+a:focus {
+  color: var(--accent);
 }
 
 .container {
@@ -43,10 +56,9 @@ header::before {
   content: "";
   position: absolute;
   inset: 0;
-  background: rgba(13, 17, 23, 0.342);
+  background: rgba(13, 17, 23, 0.35);
   z-index: 1;
 }
-
 
 .navbar {
   display: flex;
@@ -65,12 +77,12 @@ header::before {
 .logo {
   font-size: 2rem;
   font-weight: 700;
-  color: #58a6ff;
+  color: var(--accent);
 }
 
 .small.muted {
   font-size: 0.9rem;
-  color: #8b949e;
+  color: var(--text-muted);
 }
 
 .role-cycler {
@@ -89,22 +101,22 @@ header::before {
 
 .nav-links a {
   font-weight: 500;
-  transition: color 0.3s ease, text-shadow 0.3s ease;
+  transition: color var(--transition), text-shadow var(--transition);
 }
 
 .nav-links a:hover {
-  text-shadow: 0 0 6px #58a6ff;
-  color: #58a6ff;
+  text-shadow: 0 0 6px var(--accent);
+  color: var(--accent);
 }
 
 #wavefield {
   position: absolute;
-  top: 0;
-  left: 0;
-  width: 90%;
+  inset: 0;
+  width: 100%;
   height: 100%;
   z-index: 0;
   display: block;
+  pointer-events: none; /* allows scrolling through */
 }
 
 main section {
@@ -122,23 +134,43 @@ main section.visible {
 h2 {
   font-size: 2rem;
   margin-bottom: 1.5rem;
-  color: #58a6ff;
+  color: var(--accent);
 }
 
-.spoken-grid {
+.spoken-grid,
+.programming-grid,
+.project-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 1.5rem;
   margin-top: 1rem;
 }
 
-.spoken-card {
-  background: #161b22;
-  padding: 1.5rem;
-  border-radius: 1rem;
-  text-align: center;
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+.spoken-grid {
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+.programming-grid {
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+}
+
+.project-grid {
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 2rem;
+  margin-top: 2rem;
+}
+
+.spoken-card,
+.programming-card,
+.project-card {
+  background: var(--bg-card);
+  border-radius: var(--radius);
+  transition: transform var(--transition), box-shadow var(--transition);
   box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  text-align: center;
+}
+
+.spoken-card {
+  padding: 1.5rem;
 }
 
 .spoken-card:hover {
@@ -153,24 +185,14 @@ h2 {
 
 .spoken-bottom {
   font-size: 0.9rem;
-  color: #8b949e;
+  color: var(--text-muted);
   margin-top: 0.5rem;
-}
-
-.programming-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  gap: 1.5rem;
-  margin-top: 1rem;
 }
 
 .programming-card {
   background: rgba(255, 255, 255, 0.06);
   backdrop-filter: blur(12px);
-  border-radius: 1rem;
   padding: 1.2rem 1rem;
-  text-align: center;
-  transition: transform 0.25s ease, box-shadow 0.25s ease;
   cursor: default;
 }
 
@@ -196,42 +218,17 @@ h2 {
 .programming-top span {
   font-weight: 600;
   font-size: 1rem;
-  color: var(--text-primary, #ffffff);
+  color: var(--text-main);
 }
 
 .programming-bottom {
   font-size: 0.875rem;
-  color: var(--muted, #cbd5e1);
+  color: var(--text-muted);
   line-height: 1.3;
 }
 
-.project-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: 2rem;
-  margin-top: 2rem;
-}
-
-.lang-logo {
-  width: 48px;
-  height: 48px;
-  fill: var(--logo-color);
-}
-
-.programming-card .programming-top span {
-  color: var(--text-primary, #ffffff);
-}
-
-.programming-card .programming-top img {
-  color: var(--text-primary, #ffffff);
-}
-
 .project-card {
-  background: #161b22;
   padding: 2rem;
-  border-radius: 1.2rem;
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
 }
 
 .project-card:hover {
@@ -248,12 +245,12 @@ h2 {
   display: inline-block;
   margin-top: 1rem;
   font-weight: 500;
-  color: #58a6ff;
-  transition: text-shadow 0.3s ease;
+  color: var(--accent);
+  transition: text-shadow var(--transition);
 }
 
 .project-card a:hover {
-  text-shadow: 0 0 6px #58a6ff;
+  text-shadow: 0 0 6px var(--accent);
 }
 
 .contact-links {
@@ -269,11 +266,11 @@ h2 {
   gap: 0.8rem;
   font-size: 1.1rem;
   font-weight: 500;
-  transition: color 0.3s ease, transform 0.3s ease;
+  transition: color var(--transition), transform var(--transition);
 }
 
 .contact-links a:hover {
-  color: #58a6ff;
+  color: var(--accent);
   transform: translateX(5px);
 }
 
@@ -295,4 +292,3 @@ h2 {
     font-size: 0.9rem;
   }
 }
-
