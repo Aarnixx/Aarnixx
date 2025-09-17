@@ -7,31 +7,6 @@
   <link rel="icon" type="image/x-icon" href="Favicon.png">
   <link rel="stylesheet" href="styles.css" />
   <script src="https://kit.fontawesome.com/your-fontawesome-kit.js" crossorigin="anonymous"></script>
-  <style>
-    .cv-container {
-      text-align: center;
-      margin: 2rem 0;
-    }
-    .cv-container img {
-      max-width: 100%;
-      height: auto;
-      border-radius: 8px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-    }
-    .cv-container a {
-      display: inline-block;
-      margin-top: 1rem;
-      padding: 0.75rem 1.25rem;
-      background: #333;
-      color: #fff;
-      text-decoration: none;
-      border-radius: 6px;
-      transition: background 0.3s ease;
-    }
-    .cv-container a:hover {
-      background: #555;
-    }
-  </style>
 </head>
 <body>
   <canvas id="wavefield"></canvas>
@@ -140,10 +115,11 @@
     </section>
 
     <section id="cv">
-      <h2>Curriculum Vitae</h2>
+      <h2>Downloads</h2>
       <div class="cv-container">
-        <img src="CV(FIN).jpg" alt="CV Preview">
-        <a href="CV(FIN)2.pdf" download>Download CV (PDF)</a>
+        <a href="CV(FIN)2.pdf" download class="cv-download">
+          <i class="fa-solid fa-file-pdf"></i> Resume (PDF)
+        </a>
       </div>
     </section>
 
