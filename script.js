@@ -20,7 +20,9 @@ const cfg = {
     speed: 5.0,
     lineWidth: 1.0,
     pointRadius: 0.8,
-    opacity: 0.25
+    opacity: 0.25,
+    mouseInfluence: 120, // distance around cursor
+    mouseStrength: 18    // influence strength
   },
   cursorGlow: {
     enabled: true,
@@ -64,6 +66,7 @@ function Wavefield(canvas) {
   let points = [];
   let animationId;
   let time = 0;
+  let mouse = { x: null, y: null };
 
   function resize() {
     const ratio = window.devicePixelRatio || 1;
@@ -115,7 +118,16 @@ function Wavefield(canvas) {
     ctx.globalCompositeOperation = "lighter";
 
     for (let p of points) {
-      p.ay = p.y + Math.sin(time * p.speed + p.phase) * p.amp;
+      let offset = 0;
+      if (mouse.x !== null && mouse.y !== null) {
+        const dx = mouse.x - p.x;
+        const dy = mouse.y - p.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < cfg.wave.mouseInfluence) {
+          offset = (cfg.wave.mouseInfluence - dist) / cfg.wave.mouseInfluence * cfg.wave.mouseStrength;
+        }
+      }
+      p.ay = p.y + Math.sin(time * p.speed + p.phase) * p.amp - offset;
     }
 
     ctx.beginPath();
@@ -176,6 +188,11 @@ function Wavefield(canvas) {
   }
 
   window.addEventListener("resize", resize, { passive: true });
+  window.addEventListener("mousemove", e => {
+    mouse.x = e.clientX;
+    mouse.y = e.clientY;
+  });
+
   resize();
   start();
 
@@ -374,4 +391,3 @@ if (document.readyState === "complete" || document.readyState === "interactive")
 } else {
   document.addEventListener("DOMContentLoaded", initAll);
 }
-
