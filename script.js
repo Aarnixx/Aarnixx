@@ -19,7 +19,7 @@ const cfg = {
     speed: 5.0,
     lineWidth: 2.0,
     pointRadius: 0.4,
-    opacity: 0.25,
+    opacity: 0.15,
     mouseInfluence: 400,
     mouseStrength: 400,
     holeRadius: 20
@@ -448,4 +448,5 @@ if (document.readyState === "complete" || document.readyState === "interactive")
 } else {
   document.addEventListener("DOMContentLoaded", initAll);
 }
+
 
