@@ -1,11 +1,10 @@
 const cfg = {
   roles: [
     "Python Developer",
-    "Machine Learning Developer",
-    "AI Developer",
-    "Software Developer",
     "Game Developer",
-    "Problem Solver"
+    "Software Developer in Training",
+    "AI & ML Hobbyist",
+    "Creative Problem Solver"
   ],
   roleSwitchInterval: 3000,
   roleFadeDuration: 350,
@@ -449,3 +448,4 @@ if (document.readyState === "complete" || document.readyState === "interactive")
 } else {
   document.addEventListener("DOMContentLoaded", initAll);
 }
+
