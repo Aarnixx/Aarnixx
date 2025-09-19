@@ -24,14 +24,8 @@ const cfg = {
     mouseStrength: 400,
     holeRadius: 20
   },
-  cursorGlow: {
-    enabled: true,
-    size: 160,
-    intensity: 0.22,
-    fadeTime: 600
-  },
   tilt: {
-    maxRotate: 20,
+    maxRotate: 10,
     scale: 1.03
   }
 };
@@ -335,7 +329,7 @@ function setupScrollReveal() {
 }
 
 function setupCardTilt() {
-  const cards = $$(".project-card, .spoken-card");
+  const cards = $$(".project-card, .spoken-card, .t-t-card");
   if (!cards.length) return;
   let raf = null;
 
@@ -373,67 +367,12 @@ function setupCardTilt() {
   });
 }
 
-function setupCursorGlow() {
-  if (!cfg.cursorGlow.enabled) return;
-  const glow = document.createElement("div");
-  glow.id = "cursor-glow";
-  Object.assign(glow.style, {
-    position: "fixed",
-    pointerEvents: "none",
-    width: `${cfg.cursorGlow.size}px`,
-    height: `${cfg.cursorGlow.size}px`,
-    marginLeft: `-${cfg.cursorGlow.size / 2}px`,
-    marginTop: `-${cfg.cursorGlow.size / 2}px`,
-    borderRadius: "50%",
-    background: "radial-gradient(circle, rgba(56,189,248,0.22) 0%, rgba(56,189,248,0.06) 35%, rgba(56,189,248,0) 60%)",
-    mixBlendMode: "screen",
-    transform: "translate3d(-9999px,-9999px,0)",
-    transition: `opacity ${cfg.cursorGlow.fadeTime}ms ease`,
-    opacity: "0.95",
-    zIndex: "9999"
-  });
-  document.body.appendChild(glow);
-
-  let visible = false;
-  let lastMoveTs = 0;
-  let rafId = null;
-
-  function move(x, y) {
-    glow.style.transform = `translate3d(${x}px, ${y}px, 0)`;
-    lastMoveTs = performance.now();
-    if (!visible) {
-      visible = true;
-      glow.style.opacity = "0.95";
-    }
-  }
-
-  function hideWithDelay() {
-    if (rafId) cancelAnimationFrame(rafId);
-    rafId = requestAnimationFrame(function check() {
-      if (performance.now() - lastMoveTs > cfg.cursorGlow.fadeTime) {
-        visible = false;
-        glow.style.opacity = "0";
-      } else {
-        rafId = requestAnimationFrame(check);
-      }
-    });
-  }
-
-  window.addEventListener("pointermove", e => {
-    move(e.clientX, e.clientY);
-    hideWithDelay();
-  }, { passive: true });
-
-  window.addEventListener("mouseout", () => { glow.style.opacity = "0"; });
-}
-
 function initAll() {
   const canvas = setupFullPageCanvas();
   const wave = Wavefield(canvas);
   setupRoleCycler();
   setupScrollReveal();
   setupCardTilt();
-  setupCursorGlow();
 
   if (canvas) {
     const ro = new ResizeObserver(() => {
@@ -448,5 +387,3 @@ if (document.readyState === "complete" || document.readyState === "interactive")
 } else {
   document.addEventListener("DOMContentLoaded", initAll);
 }
-
-
