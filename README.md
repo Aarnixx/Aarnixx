@@ -57,4 +57,5 @@ I'm studying for a vocational qualification in information and communications te
 
 ## Contact
 
-aarninko@gmail.com
+Email: aarninko@gmail.com
+Portfolio: aarnixx.dev
